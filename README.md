@@ -1,0 +1,1 @@
+The "TCF Strategy" file contains the algorithm for determining the portfolio on an ongoing basis. The "Backtest" file contains code for back-testing the algorithm based on the past five years of trading data.
