@@ -35,36 +35,36 @@ def portfolioConstructor(metricsData, availableCapital):
     # Z-Score
     stockMetrics.loc['Z-Score'] = (stockMetrics.loc['Recent Movement'] - 2*stockMetrics.loc['Mean']) / stockMetrics.loc['Volatility']
     
+    # Select Z-Scores that meet the threshold
+    threshold = norm.ppf(0.80)
+    stockMetrics.loc['Threshold Z-Score'] = (abs(stockMetrics.loc['Z-Score']) > threshold) * stockMetrics.loc['Z-Score']
+    # Asymmetries Adjustment
     weeklyLoanFee = (1 + 0.15) ** (1/52) - 1
     stockMetrics.loc['Z-Score'] = stockMetrics.loc['Z-Score'].apply(lambda x: (1 - weeklyLoanFee) * x if x > 0 else x)
-    print(stockMetrics)
 
-    sumZ = sum(abs(stockMetrics.loc['Z-Score']))
-    sumNZ = stockMetrics.loc['Z-Score'][stockMetrics.loc['Z-Score'] < 0].sum()
+    # Weight Calculation
+    sumZ = sum(abs(stockMetrics.loc['Threshold Z-Score']))
+    sumNZ = stockMetrics.loc['Threshold Z-Score'][stockMetrics.loc['Threshold Z-Score'] > 0].sum()
 
     if math.isnan(sumZ):
         sumZ = 1
-
-    # Select Z-Scores that meet the threshold
-    threshold = norm.ppf(0.90)
-    stockMetrics.loc['Threshold Z-Score'] = (abs(stockMetrics.loc['Z-Score']) > threshold) * stockMetrics.loc['Z-Score']
-
+    
     # Weightings
-    stockMetrics.loc['Portfolio Weight'] = -stockMetrics.loc['Threshold Z-Score'] / (sumZ + sumNZ/2)
+    stockMetrics.loc['Portfolio Weight'] = -stockMetrics.loc['Threshold Z-Score'] / (sumZ - sumNZ/2)
     
     stockMetrics['Cash'] = 0
-    stockMetrics.loc['Portfolio Weight', 'Cash'] = (1 - sum(stockMetrics.loc['Portfolio Weight']))
+    stockMetrics.loc['Portfolio Weight', 'Cash (Margin)'] = (1 - sum(stockMetrics.loc['Portfolio Weight']))
 
     # Positions
     stockMetrics.loc['Opening Position'] = availableCapital * stockMetrics.loc['Portfolio Weight']
-
+    
     return stockMetrics
 
 ############## Call Function
 
 # S&P 100 Tickers
-tickers = ["GOOG", "MSFT", "AAPL", "NVDA", "AMZN", "META", "GOOGL", "GOOG", "BRK-B", "LLY", "AVGO", "JPM", "TSLA", "UNH", "V", "XOM", "MA", "JNJ", "PG", "HD", "MRK", "COST", "ABBV", "ADBE", "AMD", "CRM", "CVX", "NFLX", "WMT", "PEP", "KO", "ACN", "BAC", "TMO", "MCD", "CSCO", "LIN", "ABT", "ORCL", "CMCSA", "INTC", "INTU", "DIS", "WFC", "VZ", "AMGN", "IBM", "CAT", "DHR", "QCOM", "NOW", "UNP", "PFE", "GE", "SPGI", "TXN", "AMAT", "PM", "ISRG", "RTX", "COP", "HON", "T", "BKNG", "LOW", "GS", "NKE", "AXP", "BA", "PLD", "SYK", "MDT", "ELV", "NEE", "LRCX", "TJX", "VRTX", "BLK", "MS", "ETN", "PANW", "PGR", "SBUX", "C", "DE", "MDLZ", "ADP", "CB", "UPS", "REGN", "BMY", "ADI", "GILD", "MU", "MMC", "BSX", "CI", "LMT", "CVS", "SCHW"]
- 
+tickers = ["MSFT", "AAPL", "NVDA", "AMZN", "META", "GOOG", "BRK-B", "LLY", "AVGO", "JPM", "TSLA", "UNH", "V", "XOM", "MA", "JNJ", "PG", "HD", "MRK", "COST", "ABBV", "ADBE", "AMD", "CRM", "CVX", "NFLX", "WMT", "PEP", "KO", "ACN", "BAC", "TMO", "MCD", "CSCO", "LIN", "ABT", "ORCL", "CMCSA", "INTC", "INTU", "DIS", "WFC", "VZ", "AMGN", "IBM", "CAT", "DHR", "QCOM", "NOW", "UNP", "PFE", "GE", "SPGI", "TXN", "AMAT", "PM", "ISRG", "RTX", "COP", "HON", "T", "BKNG", "LOW", "GS", "NKE", "AXP", "BA", "PLD", "SYK", "MDT", "ELV", "NEE", "LRCX", "TJX", "VRTX", "BLK", "MS", "ETN", "PANW", "PGR", "SBUX", "C", "DE", "MDLZ", "ADP", "CB", "UPS", "REGN", "BMY", "ADI", "GILD", "MU", "MMC", "BSX", "CI", "LMT", "CVS", "SCHW"]
+
 # Backtest Details
 availableCapital = 5000000
 
@@ -74,5 +74,6 @@ metricsData = dataScraper(tickers)
 # Compute the Portfolio
 stockMetrics = portfolioConstructor(metricsData, availableCapital)
 positions = stockMetrics.tail(2).loc[:, (stockMetrics.tail(2) != 0).any()]
+positions.loc['Opening Position'] = positions.loc['Opening Position'].apply(lambda x: '${:,.2f}'.format(x))
+positions.loc['Portfolio Weight'] = positions.loc['Portfolio Weight'].apply(lambda x: '{:,.2f}%'.format(x * 100))
 print(positions)
-
