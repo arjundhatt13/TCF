@@ -36,7 +36,7 @@ def portfolioConstructor(metricsData, availableCapital):
     stockMetrics.loc['Z-Score'] = (stockMetrics.loc['Recent Movement'] - 2*stockMetrics.loc['Mean']) / stockMetrics.loc['Volatility']
     
     # Select Z-Scores that meet the threshold
-    threshold = norm.ppf(0.80)
+    threshold = norm.ppf(0.90)
     stockMetrics.loc['Threshold Z-Score'] = (abs(stockMetrics.loc['Z-Score']) > threshold) * stockMetrics.loc['Z-Score']
     # Asymmetries Adjustment
     weeklyLoanFee = (1 + 0.15) ** (1/52) - 1
